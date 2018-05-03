@@ -59,7 +59,6 @@ class HdmiFrontEnd(val reg: RegMap) {
     fun status() {
         //filter status
         //val v_filterlocked = reg.read16()
-
     }
 }
 
@@ -72,54 +71,17 @@ fun List<String>.flatten() : String {
     return flat.trim()
 }
 
-fun compute_tmds_clock(map: RegMap?) : Double {
-    val freq_reg = map!!.read16(0x51)
-    val freq_whole = (freq_reg and 0xFF80) shr 0x7
-    val freq_frac: Double = (freq_reg and 0x007F).toDouble() / 128.0
-    val freq = freq_whole + freq_frac
-
-    println("raw frequency reg = $freq_reg, freq_whole = $freq_whole, freq_frac = $freq_frac")
-    return freq
-}
-
-fun compute_pixel_clock(freq: Double, color_depth: Double) : Double {
-    return (freq*8.0/color_depth)
-}
-
-fun compute_vertical_freq(map: RegMap?) {
-    if(map != null) {
-        val width = map.read16(0x7) and 0x00001FFF
-        val hsyncfp = map.read16(0x20)
-        val hsyncdura = map.read16(0x22)
-        val hsyncbp = map.read16(0x24)
-        val totalwidth = width + hsyncfp + hsyncdura + hsyncbp
-
-        val height = map.read16(0x9) and 0x00001FFF
-        val vsyncfp = map.read16(0x2A)  / 2
-        val vsyncdura = map.read16(0x2E) / 2
-        val vsyncbp = map.read16(0x32) / 2
-        val totalheight = height + vsyncfp + vsyncdura + vsyncbp
-
-        val tmdsclk = compute_tmds_clock(map)
-        val vertfreq = 1000000.0 * (compute_pixel_clock(tmdsclk, 10.0) / (totalwidth * totalheight))
-        println("tmdsclk = $tmdsclk")
-        println("hsyncfp = $hsyncfp, hsyncdura = $hsyncdura, hsyncbp = $hsyncbp")
-        println("vsyncfp = $vsyncfp, vsyncdura = $vsyncdura, vsyncbp = $vsyncbp")
-        println("vert freq = $vertfreq, width = $width, total width = $totalwidth, height = $height total height = $totalheight")
-    }
-}
-
 fun compare_map(r1 : RegMap, r2 : RegMap) {
 
 }
 
-fun process_table(blob: String?) : ByteArray {
+fun process_table(blob: String) : ByteArray {
     //no line can ever be too long
-    val one = blob!!.substring(blob!!.findLastAnyOf(setOf("-"))!!.first+1)
+    val one = blob.substring(blob.findLastAnyOf(setOf("-"))!!.first+1)
     val two = one.split("\n")
     val three = two.flatten()
     val four = three.split(" ")
-    val raw_values = blob!!.substring(blob!!.findLastAnyOf(setOf("-"))!!.first+1).split("\n").flatten().split(" ")
+    val raw_values = blob.substring(blob.findLastAnyOf(setOf("-"))!!.first+1).split("\n").flatten().split(" ")
     val data = ByteArray(raw_values.size)
     for((index, value) in raw_values.withIndex()) {
         data[index] = Integer.parseInt(value, 16).toByte()
@@ -134,12 +96,12 @@ fun process_reg_file(path: Path) : Map<String, RegMap?> {
     val str =  String(data, Charset.defaultCharset())
 
     var reg_maps = mutableMapOf<String, RegMap?>("hdmi" to null,
-            "rep" to null,
-            "edid" to null,
-            "if" to null,
-            "cec" to null,
-            "cp" to null,
-            "dpll" to null)
+                                                 "rep" to null,
+                                                 "edid" to null,
+                                                 "if" to null,
+                                                 "cec" to null,
+                                                 "cp" to null,
+                                                 "dpll" to null)
 
     //There should be an entry for each type
     for(header in reg_maps.keys) {
