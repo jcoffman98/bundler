@@ -1,0 +1,46 @@
+
+
+buildscript {
+  ext.kotlin_version = '1.2.40'
+  
+  repositories {
+    mavenCentral()
+  }
+  
+  dependencies {
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+  }
+}
+
+
+apply plugin: 'kotlin'
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.jeff.stuff.BundlerKt'
+    }
+
+	// This line of code recursively collects and copies all of a project's files
+	// and adds them to the JAR itself. One can extend this task, to skip certain 
+	// files or particular types at will
+	from { 
+		configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } 
+	}    
+}
+
+sourceSets {
+    main.java.srcDirs += 'src/main/kotlin/'
+}
+
+repositories {
+	jcenter()
+    mavenCentral()
+}
+
+dependencies {
+    //implementation 'com.beust:klaxon:3.0.1'
+    compile 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.2.40'
+    compile 'org.jetbrains.kotlin:kotlin-reflect:1.2.40'
+    //compile files('libs/klaxon-master-3.0.1.jar')
+}
+
