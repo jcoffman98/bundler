@@ -1,7 +1,7 @@
 
 
 buildscript {
-  ext.kotlin_version = '1.2.40'
+  ext.kotlin_version = '1.2.41'
   
   repositories {
     mavenCentral()
@@ -38,8 +38,8 @@ repositories {
 }
 
 dependencies {
-    compile 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.2.40'
-    compile 'org.jetbrains.kotlin:kotlin-reflect:1.2.40'
+    compile 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.2.41'
+    compile 'org.jetbrains.kotlin:kotlin-reflect:1.2.41'
     compile 'io.kotlintest:kotlintest-runner-junit5:3.1.0-RC2'
     //implementation 'com.beust:klaxon:3.0.1'
     //compile files('libs/klaxon-master-3.0.1.jar')
