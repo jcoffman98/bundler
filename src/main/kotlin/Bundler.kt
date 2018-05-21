@@ -43,6 +43,9 @@ class HdmiFrontEnd(val reg_maps: Map<String, RegMap?>) {
     private var horz_f_locked : String
     private var hdmi_hdcp : String
     private var cable_det : String
+    private var irq2_cleared: String
+    private var irq3_cleared: String
+    private var irq4_cleared: String
 
     init {
         val inter = reg_maps["hdmi"]!!.read8(0x0B)
@@ -70,51 +73,69 @@ class HdmiFrontEnd(val reg_maps: Map<String, RegMap?>) {
         v_polarity = (auxpol shr 4) and 0x1
         h_polarity = (auxpol shr 5) and 0x1
 
-        //interrupt status's
-        val irq2status = reg_maps["io"]!!.read8(0x65)
-        val irq3status = reg_maps["io"]!!.read8(0x6A)
-        val irq4status = reg_maps["io"]!!.read8(0x6F)
+        //interrupt raw status's
+        val irq2rawstatus = reg_maps["io"]!!.read8(0x65)
+        val irq3rawstatus = reg_maps["io"]!!.read8(0x6A)
+        val irq4rawstatus = reg_maps["io"]!!.read8(0x6F)
 
-        mode = when(((irq2status shr 0x3) and 0x1)) {
+        mode = when(((irq2rawstatus shr 0x3) and 0x1)) {
             1 -> "HDMI"
             0 -> "DVI"
             else -> "unknown"
         }
 
-        tmdspll_lck = when(((irq3status shr 6) and 0x1)) {
-            1 -> "Locked"
+        tmdspll_lck = when(((irq3rawstatus shr 6) and 0x1)) {
+            1 -> "locked"
             0 -> "not Locked"
             else -> "Idunnoknow"
         }
 
-        tmds_clk_a_det = when(((irq3status shr 4) and 0x1)) {
+        tmds_clk_a_det = when(((irq3rawstatus shr 4) and 0x1)) {
             1 -> "detected"
             0 -> "not detected"
             else -> "Idunnoknow"
         }
 
-        vert_f_locked = when(((irq3status shr 1) and 0x1)) {
+        vert_f_locked = when(((irq3rawstatus shr 1) and 0x1)) {
             1 -> "locked"
             0 -> "not locked"
             else -> "Idunnoknow"
         }
 
-        horz_f_locked = when((irq3status and 0x1)) {
+        horz_f_locked = when((irq3rawstatus and 0x1)) {
             1 -> "locked"
             0 -> "not locked"
             else -> "Idunnoknow"
         }
 
-        hdmi_hdcp = when(((irq4status shr 2)and 0x1)) {
+        hdmi_hdcp = when(((irq4rawstatus shr 2)and 0x1)) {
             1 -> "encrypted"
             0 -> "not encrypted"
             else -> "Idunnoknow"
         }
 
-        cable_det = when((irq4status and 0x1)) {
+        cable_det = when((irq4rawstatus and 0x1)) {
             1 -> "detected"
             0 -> "not detected"
             else -> "Idunnoknow"
+        }
+
+
+        //interrupt status's should be cleared, its possible we bundled while they are being processed
+        val irq2status = reg_maps["io"]!!.read8(0x66)
+        val irq3status = reg_maps["io"]!!.read8(0x6B)
+        val irq4status = reg_maps["io"]!!.read8(0x70)
+        irq2_cleared = when {
+            irq2status != 0 -> "not cleared"
+            else -> "cleared"
+        }
+        irq3_cleared = when {
+            irq3status != 0 -> "not cleared"
+            else -> "cleared"
+        }
+        irq4_cleared = when {
+            irq4status != 0 -> "not cleared"
+            else -> "cleared"
         }
     }
 
@@ -146,21 +167,200 @@ class HdmiFrontEnd(val reg_maps: Map<String, RegMap?>) {
 
     fun generatereport() : String {
         val report =  html {
+            head {
+                style {
+                    +"table, td { border: 1px solid black; }"
+                }
+            }
             body {
-                h1 { +"HDMI RX report"}
-                h2 { +"Input Status"}
-                p { +"${width}x${height}@${getverticalfreq()} "}
-                p { +"colorspace = ${getcolorspace()}"}
-                p { +"vertical polarity = $v_polarity"}
-                p { +"horizontal polarity = $h_polarity"}
-                p { +"interlaced = $interlaced"}
-                p { +"HDMI mode = $mode"}
-                p { +"TMDS PLL  = $tmdspll_lck"}
-                p { +"TMDS clk  = $tmds_clk_a_det"}
-                p { +"Vertical filter  = $vert_f_locked"}
-                p { +"Horizontal filter  = $horz_f_locked"}
-                p { +"HDCP  = $hdmi_hdcp"}
-                p { +"Cable = $cable_det"}
+                h1 { +"HDMI Input Status"}
+                svg("75", "75") {
+                    line("0", "37", "75", "37", "stroke:rgb(0,0,0);stroke-width:2") {}
+                }
+                svg("75", "75") {
+                    var style: String
+                    if(this@HdmiFrontEnd.cable_det == "detected")
+                        style = """fill:rgb(0,255,0)"""
+                    else
+                        style = """fill:rgb(255,0,0)"""
+                    rect("75", "75", style) {}
+                    text("#000000", "15", "Verdana", "10", "35") {
+                        +"cable"
+                    }
+                    text("#000000", "15", "Verdana", "10", "50") {
+                        +"detect"
+                    }
+                }
+                svg("75", "75") {
+                    line("0", "37", "75", "37", "stroke:rgb(0,0,0);stroke-width:2") {}
+                }
+                svg("75", "75") {
+                    var style: String
+                    if(this@HdmiFrontEnd.tmds_clk_a_det == "detected")
+                        style = """fill:rgb(0,255,0)"""
+                    else
+                        style = """fill:rgb(255,0,0)"""
+                    rect("75", "75", style) {}
+                    text("#000000", "15", "Verdana", "10", "35") {
+                        +"tmds clk"
+                    }
+                    text("#000000", "15", "Verdana", "10", "50") {
+                        +"detect"
+                    }
+                }
+                svg("75", "75") {
+                    line("0", "37", "75", "37", "stroke:rgb(0,0,0);stroke-width:2") {}
+                }
+                svg("75", "75") {
+                    var style: String
+                    if(this@HdmiFrontEnd.tmdspll_lck == "locked")
+                        style = """fill:rgb(0,255,0)"""
+                    else
+                        style = """fill:rgb(255,0,0)"""
+                    rect("75", "75", style) {}
+                    text("#000000", "15", "Verdana", "10", "35") {
+                        +"tmds pll"
+                    }
+                    text("#000000", "15", "Verdana", "10", "50") {
+                        +"locked"
+                    }
+                }
+                svg("75", "75") {
+                    line("0", "37", "75", "37", "stroke:rgb(0,0,0);stroke-width:2") {}
+                }
+                svg("75", "75") {
+                    var style: String
+                    if(this@HdmiFrontEnd.horz_f_locked == "locked")
+                        style = """fill:rgb(0,255,0)"""
+                    else
+                        style = """fill:rgb(255,0,0)"""
+                    rect("75", "75", style) {}
+                    text("#000000", "15", "Verdana", "10", "35") {
+                        +"h_filter"
+                    }
+                    text("#000000", "15", "Verdana", "10", "50") {
+                        +"locked"
+                    }
+                }
+                svg("75", "75") {
+                    line("0", "37", "75", "37", "stroke:rgb(0,0,0);stroke-width:2") {}
+                }
+                svg("75", "75") {
+                    var style: String
+                    if(this@HdmiFrontEnd.vert_f_locked == "locked")
+                        style = """fill:rgb(0,255,0)"""
+                    else
+                        style = """fill:rgb(255,0,0)"""
+                    rect("75", "75", style) {}
+                    text("#000000", "15", "Verdana", "10", "35") {
+                        +"v_filter"
+                    }
+                    text("#000000", "15", "Verdana", "10", "50") {
+                        +"locked"
+                    }
+                }
+                h2 { +"HDMI Input Information"}
+                p {
+                    +"Details about the HDMI input signal"
+                }
+                table("width:50%") {
+                    tr {
+                        td {
+                            +"width"
+                        }
+                        td {
+                            +"$width"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"height"
+                        }
+                        td {
+                            +"$height"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"vert freq"
+                        }
+                        td {
+                            +"${getverticalfreq()}"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"colorspace"
+                        }
+                        td {
+                            +"${getcolorspace()}"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"vertical polarity"
+                        }
+                        td {
+                            +"${v_polarity}"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"horizontal polarity"
+                        }
+                        td {
+                            +"$h_polarity"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"interlaced"
+                        }
+                        td {
+                            +"$interlaced"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"mode"
+                        }
+                        td {
+                            +"$mode"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"HDCP"
+                        }
+                        td {
+                            +"$hdmi_hdcp"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"irq level 2 cleared"
+                        }
+                        td {
+                            +"$irq2_cleared"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"irq level 3 cleared"
+                        }
+                        td {
+                            +"$irq3_cleared"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"irq level 4 cleared"
+                        }
+                        td {
+                            +"$irq4_cleared"
+                        }
+                    }
+                }
             }
         }
         return report.toString()
