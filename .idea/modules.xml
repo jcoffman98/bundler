@@ -3,8 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/bundler.iml" filepath="$PROJECT_DIR$/bundler.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/bundler_main.iml" filepath="$PROJECT_DIR$/.idea/modules/bundler_main.iml" group="bundler" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/bundler_test.iml" filepath="$PROJECT_DIR$/.idea/modules/bundler_test.iml" group="bundler" />
     </modules>
   </component>
 </project>
