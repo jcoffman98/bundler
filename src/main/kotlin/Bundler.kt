@@ -46,21 +46,27 @@ class HdmiFrontEnd(val reg_maps: Map<String, RegMap?>) {
     private var irq2_cleared: String
     private var irq3_cleared: String
     private var irq4_cleared: String
+    private var hsyncfp = 0
+    private var hsyncdura = 0
+    private var hsyncbp = 0
+    private var vsyncfp = 0
+    private var vsyncdura = 0
+    private var vsyncbp = 0
 
     init {
         val inter = reg_maps["hdmi"]!!.read8(0x0B)
         interlaced = ((inter shr 5) and 0x1) == 1
 
         width = reg_maps["hdmi"]!!.read16(0x7) and 0x00001FFF
-        val hsyncfp = reg_maps["hdmi"]!!.read16(0x20)
-        val hsyncdura = reg_maps["hdmi"]!!.read16(0x22)
-        val hsyncbp = reg_maps["hdmi"]!!.read16(0x24)
+        hsyncfp = reg_maps["hdmi"]!!.read16(0x20)
+        hsyncdura = reg_maps["hdmi"]!!.read16(0x22)
+        hsyncbp = reg_maps["hdmi"]!!.read16(0x24)
         totalwidth = width + hsyncfp + hsyncdura + hsyncbp
 
         height = reg_maps["hdmi"]!!.read16(0x9) and 0x00001FFF
-        val vsyncfp = reg_maps["hdmi"]!!.read16(0x2A)  / 2
-        val vsyncdura = reg_maps["hdmi"]!!.read16(0x2E) / 2
-        val vsyncbp = reg_maps["hdmi"]!!.read16(0x32) / 2
+        vsyncfp = reg_maps["hdmi"]!!.read16(0x2A)  / 2
+        vsyncdura = reg_maps["hdmi"]!!.read16(0x2E) / 2
+        vsyncbp = reg_maps["hdmi"]!!.read16(0x32) / 2
         totalheight = height + vsyncfp + vsyncdura + vsyncbp
 
         val freq_reg = reg_maps["hdmi"]!!.read16(0x51)
@@ -169,7 +175,7 @@ class HdmiFrontEnd(val reg_maps: Map<String, RegMap?>) {
         val report =  html {
             head {
                 style {
-                    +"table, td { border: 1px solid black; }"
+                    +"table, tr, td { border: 1px solid black; }"
                 }
             }
             body {
@@ -259,7 +265,7 @@ class HdmiFrontEnd(val reg_maps: Map<String, RegMap?>) {
                         +"locked"
                     }
                 }
-                h2 { +"HDMI Input Information"}
+                h2 { +"HDMI Input General Information"}
                 p {
                     +"Details about the HDMI input signal"
                 }
@@ -298,22 +304,6 @@ class HdmiFrontEnd(val reg_maps: Map<String, RegMap?>) {
                     }
                     tr {
                         td {
-                            +"vertical polarity"
-                        }
-                        td {
-                            +"${v_polarity}"
-                        }
-                    }
-                    tr {
-                        td {
-                            +"horizontal polarity"
-                        }
-                        td {
-                            +"$h_polarity"
-                        }
-                    }
-                    tr {
-                        td {
                             +"interlaced"
                         }
                         td {
@@ -336,9 +326,80 @@ class HdmiFrontEnd(val reg_maps: Map<String, RegMap?>) {
                             +"$hdmi_hdcp"
                         }
                     }
+                }
+
+                h2 { +"HDMI Input Timing Information"}
+                table("width:50%") {
                     tr {
                         td {
-                            +"irq level 2 cleared"
+                            +"hsyncfp"
+                        }
+                        td {
+                            +"$hsyncfp             "
+                        }
+                    }
+                    tr {
+                        td {
+                            +"hsyncdura"
+                        }
+                        td {
+                            +"$hsyncdura"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"hsyncbp"
+                        }
+                        td {
+                            +"$hsyncbp"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"vsyncfp"
+                        }
+                        td {
+                            +"$vsyncfp"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"vsyncdura"
+                        }
+                        td {
+                            +"$vsyncdura"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"vsyncbp"
+                        }
+                        td {
+                            +"$vsyncbp"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"vertical polarity"
+                        }
+                        td {
+                            +"${v_polarity}"
+                        }
+                    }
+                    tr {
+                        td {
+                            +"horizontal polarity"
+                        }
+                        td {
+                            +"$h_polarity"
+                        }
+                    }
+                }
+                h2 { +"HDMI Input Detailed Debug Information"}
+                table("width:50%") {
+                    tr {
+                        td {
+                            +"irq level 2"
                         }
                         td {
                             +"$irq2_cleared"
@@ -346,7 +407,7 @@ class HdmiFrontEnd(val reg_maps: Map<String, RegMap?>) {
                     }
                     tr {
                         td {
-                            +"irq level 3 cleared"
+                            +"irq level 3"
                         }
                         td {
                             +"$irq3_cleared"
@@ -354,7 +415,7 @@ class HdmiFrontEnd(val reg_maps: Map<String, RegMap?>) {
                     }
                     tr {
                         td {
-                            +"irq level 4 cleared"
+                            +"irq level 4"
                         }
                         td {
                             +"$irq4_cleared"
