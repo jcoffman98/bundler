@@ -9,6 +9,7 @@ import java.nio.file.Paths
 import com.util.html.*
 
 import java.nio.charset.StandardCharsets
+import java.nio.file.FileSystems
 
 open class RegMap(val data: ByteArray) {
 
@@ -476,17 +477,27 @@ fun process_reg_file(path: Path) : Map<String, RegMap?> {
     return reg_maps
 }
 
-fun main(args: Array<String>) {
-    println("number of args = ${args.size}")
-    val maps = mutableListOf<Map<String, RegMap?>>()
-    val bundle_path = Paths.get("./data")
-    for(arg in args) {
-        println(arg)
-        maps.add(process_reg_file(bundle_path.resolve(arg)))
+fun unpacknprocess(zipfile: Path) {
+    val zipfs = FileSystems.newFileSystem(zipfile, null)
+    Files.walk(zipfs.getPath("/")).forEach {
+        println(it)
     }
 
-    val fe1 = HdmiFrontEnd(maps[0])
+    val tmpdir = Files.createTempDirectory("bunlder")
 
-    println("html ${fe1.generatereport()}")
-    Files.write(Paths.get("./data/report.html"), fe1.generatereport().toByteArray(StandardCharsets.UTF_8))
+    //build the hdmi rx registermap
+    val maps = process_reg_file(Files.copy(zipfs.getPath("hdmi_rx_reg.txt"), tmpdir.resolve("hdmi_rx_reg.txt")))
+
+    val hdmife = HdmiFrontEnd(maps)
+
+    Files.write(tmpdir.resolve("hdmi_rx_report.html"), hdmife.generatereport().toByteArray(StandardCharsets.UTF_8))
+}
+
+fun main(args: Array<String>) {
+    println("number of args = ${args.size}")
+
+
+    val bundle_path = Paths.get("./data")
+
+    unpacknprocess(bundle_path.resolve(args[0]))
 }
